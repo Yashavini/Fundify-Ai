@@ -1,1 +1,37 @@
+import streamlit as st
+from langchain.embeddings import HuggingFaceEmbeddings
+from langchain.vectorstores import Chroma
+from langchain.llms import HuggingFaceHub
+from langchain.chains import RetrievalQA
 
+st.set_page_config(page_title="Fundify AI")
+
+st.title("💸 Fundify AI")
+st.write("Ask questions about startup funding")
+
+# Load DB
+embeddings = HuggingFaceEmbeddings(
+    model_name="sentence-transformers/all-MiniLM-L6-v2"
+)
+
+db = Chroma(
+    persist_directory="vector_db",
+    embedding_function=embeddings
+)
+
+# LLM
+llm = HuggingFaceHub(
+    repo_id="google/flan-t5-base",
+    model_kwargs={"temperature": 0.3}
+)
+
+qa = RetrievalQA.from_chain_type(
+    llm=llm,
+    retriever=db.as_retriever()
+)
+
+query = st.text_input("Ask your funding question:")
+
+if query:
+    answer = qa.run(query)
+    st.success(answer)
